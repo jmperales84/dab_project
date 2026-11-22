@@ -1,0 +1,79 @@
+resources:
+
+  jobs:
+
+    citibike_etl_pipeline_nb:
+
+      name: citibike_etl_pipeline_nb
+
+      environments:
+
+        - environment_key: default
+          spec:
+            environment_version: "3"
+            dependencies:
+              - ../dist/*.whl
+
+      tasks:
+
+        #- task_key: 00_wheel_upload  Esto sería necesario para un cluster convencional
+        #    job_cluster_key: default
+        #    python_wheel_task:
+        #      package_name: dab_project
+        #      entry_point: main  # <--- Debe coincidir con la clave definida en console_scripts
+        #    libraries:
+        #      - whl: ../dist/*.whl  # <--- Aquí va la referencia a la rueda
+
+        - task_key: 01_bronze_citibike
+          environment_key: default  # <--- Habilita el entorno con la wheel instalada
+          notebook_task:
+            notebook_path: ../citibike_etl/notebooks/01_bronze/01_bronze_citibike.ipynb
+            source: WORKSPACE
+            base_parameters:
+              task_id: "{{task.run_id}}"
+
+        - task_key: 02_silver_citibike
+          environment_key: default  # <--- Habilita el entorno con la wheel instalada
+          depends_on:
+            - task_key: 01_bronze_citibike
+          notebook_task:
+            notebook_path: ../citibike_etl/notebooks/02_silver/02_silver_citibike.ipynb
+            source: WORKSPACE
+            base_parameters:
+              task_id: "{{task.run_id}}"
+
+        - task_key: 03_gold_citibike_daily_ride_summary
+          depends_on:
+            - task_key: 02_silver_citibike
+          notebook_task:
+            notebook_path: ../citibike_etl/notebooks/03_gold/03_gold_citibike_daily_ride_summary.ipynb
+            source: WORKSPACE
+            base_parameters:
+              task_id: "{{task.run_id}}"
+
+        - task_key: 03_gold_citibike_daily_station_performance
+          environment_key: default  # <--- Habilita el entorno con la wheel instalada
+          depends_on:
+            - task_key: 02_silver_citibike
+          notebook_task:
+            notebook_path: ../citibike_etl/notebooks/03_gold/03_gold_citibike_daily_station_performance.ipynb
+            source: WORKSPACE
+            base_parameters:
+              task_id: "{{task.run_id}}"
+
+      parameters:
+        - name: pipeline_id
+          default: "{{job.id}}"
+        - name: run_id
+          default: "{{job.run_id}}"
+        - name: processed_timestamp
+          default: "{{job.start_time.iso_datetime}}"
+        - name: catalog
+          default: "${var.catalog}"
+        - name: bronze_schema
+          default: "${var.bronze_schema}"
+        - name: silver_schema
+          default: "${var.silver_schema}"
+        - name: gold_schema
+          default: "${var.gold_schema}"
+

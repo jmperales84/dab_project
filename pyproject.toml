@@ -1,0 +1,18 @@
+# Otra forma de generar el whl
+
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "dab_project"
+version = "0.0.1"
+description = "Código reutilizable en el directorio src del proyecto"
+readme = "README.md"
+requires-python = ">=3.9"
+dependencies = [
+    # Aquí añades dependencias de runtime si las hubiera (ej. pandas)
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]
